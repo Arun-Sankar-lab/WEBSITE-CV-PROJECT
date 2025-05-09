@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CV Image Processor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            height: calc(100vh - 40px);
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar h2 {
+            text-align: center;
+        }
+
+        .sidebar ul {
+
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            margin: 15px 0;
+        }
+
+        .sidebar ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .main-content h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .image-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin-bottom: 30px;
+        }
+
+        .image-box img {
+            max-width: 100%;
+            max-height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .buttons {
+            margin-bottom: 20px;
+        }
+
+        .buttons button,
+        .buttons input {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #333;
+            color: white;
+        }
+
+        footer p {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        /* Custom File Input */
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #007bff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar for Navigation -->
+        <aside class="sidebar">
+            <h2>Tools</h2>
+            <ul>
+                <li>
+                    <a href="javascript:void(0)" onclick="toggleNoiseOptions()">Add Noise</a>
+                    <div id="noiseOptions" style="display: none; margin-left: 15px; margin-top: 5px;">
+                        <select id="noiseType" style="width: 100%; padding: 5px;" onchange="showNoiseParameters()">
+                            <option value="">-- Select Noise Type --</option>
+                            <option value="gaussian">Gaussian</option>
+                            <option value="saltpepper">Salt and Pepper</option>
+                            <option value="rayleigh">Rayleigh Noise</option>
+                            <option value="uniform">Uniform Noise</option>
+                            <option value="gamma">Gamma Noise</option>
+                            <option value="periodic">Periodic Noise</option>
+                        </select>
+                        <div id="noiseParams" style="margin-top: 10px;"></div>
+
+                        <!-- Add the processed image container here -->
+                        <div id="processedImageContainer" style="margin-top: 10px;">
+                            <img id="processedImage" src="" alt="Processed Image"
+                                style="max-width: 100%; display: none;" />
+                        </div>
+                    </div>
+                </li>
+
+
+                <li>
+                    <a href="javascript:void(0)" onclick="toggleFilterOptions()">Apply Filter</a>
+                    <div id="filterOptions" style="display: none; margin-left: 15px; margin-top: 5px;">
+                        <select id="filterType" onchange="showFilterParameters()" style="width: 100%; padding: 5px;">
+                            <option value="">Select Filter Type</option>
+                            <option value="mean">Mean Filter</option>
+                            <option value="harmonic">Harmonic Mean Filter</option>
+                            <option value="contraharmonic">Contraharmonic Mean Filter</option>
+                            <option value="median">Median Filter</option>
+                            <option value="min">Min Filter</option>
+                            <option value="max">Max Filter</option>
+                            <option value="adaptiveMean">Adaptive Mean Filter</option>
+                            <option value="adaptiveMedian">Adaptive Median Filter</option>
+                            <option value="box">Box Filter</option>
+                        </select>
+                        <div id="filterParams" style="margin-top: 10px;"></div>
+                    </div>
+                </li>
+
+                <li>
+                    <a href="javascript:void(0)" onclick="toggleEdgeOptions()">Edge Detection</a>
+                    <div id="edgeOptions" style="display: none; margin-left: 15px; margin-top: 5px;">
+                        <select id="edgeType" onchange="showEdgeParameters()" style="width: 100%; padding: 5px;">
+                            <option value="" selected>Select Edge Detection Method</option>
+                            <option value="sobel">Sobel</option>
+                            <option value="roberts">Roberts</option>
+                            <option value="log">LoG</option>
+                            <option value="dog">DoG</option>
+                            <option value="canny">Canny</option>
+                        </select>
+                        <div id="edgeParams" style="margin-top: 10px;"></div>
+                    </div>
+                </li>
+
+            </ul>
+        </aside>
+
+        <!-- Main Content Section -->
+        <main class="main-content">
+            <h1>Image Processing Playground</h1>
+            <div class="image-box">
+                <!-- Default image with crossorigin attribute -->
+                <img id="preview" src="/uploads/pexels-tranmautritam-326501.jpg" alt="Uploaded Image">
+                <div class="buttons">
+                    <label class="file-input-label" for="upload">Upload Image</label>
+                    <input type="file" id="upload" class="file-input" accept="image/*" onchange="previewImage(event)">
+                    <button id="resetBtn" onclick="resetImage()">Reset</button>
+                    <button id="downloadBtn" onclick="downloadImage()">Download</button>
+                </div>
+            </div>
+        </main>
+
+        <div id="loader" style="display: none;" class="spinner-overlay">
+            <div class="spinner"></div>
+        </div>
+
+
+    </div>
+
+
+    <!-- Footer with basic info -->
+    <footer class="footer">
+        <p>This is a basic image processing website for the better understanding for users and to play with the image
+            and see the results.
+            <br>This will be mostly usefull for anyone who is studying image processing.
+        </p>
+    </footer>
+
+    <script>
+        function applyNoise() {
+
+            document.getElementById("loader").style.display = "block";
+
+            const previewImageElement = document.getElementById("preview");
+            const imageSrc = previewImageElement.src;
+
+            if (!imageSrc || imageSrc === "") {
+                alert("No image selected for processing!");
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            const img = new Image();
+
+            const fileInput = document.getElementById("upload");
+            const file = fileInput.files[0];
+
+
+            img.src = imageSrc;
+
+
+            img.onload = function () {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                context.drawImage(img, 0, 0);
+
+                const imageData = canvas.toDataURL("image/png");
+                const noiseType = document.getElementById("noiseType").value;
+
+                // Extract noise parameters dynamically
+                let params = {};
+                switch (noiseType) {
+                    case "gaussian":
+                        params.mean = parseFloat(document.getElementById("gaussianMean").value);
+                        params.sigma = parseFloat(document.getElementById("gaussianSigma").value);
+                        break;
+                    case "saltpepper":
+                        params.saltProb = parseFloat(document.getElementById("saltProb").value);
+                        params.pepperProb = parseFloat(document.getElementById("pepperProb").value);
+                        break;
+                    case "rayleigh":
+                        params.scale = parseFloat(document.getElementById("rayleighScale").value);
+                        break;
+                    case "uniform":
+                        params.low = parseFloat(document.getElementById("uniformLow").value);
+                        params.high = parseFloat(document.getElementById("uniformHigh").value);
+                        break;
+                    case "gamma":
+                        params.shape = parseFloat(document.getElementById("gammaShape").value);
+                        params.scale = parseFloat(document.getElementById("gammaScale").value);
+                        break;
+                    case "periodic":
+                        params.freq = parseFloat(document.getElementById("periodicFreq").value);
+                        break;
+                    default:
+                        alert("Please select a valid noise type.");
+                        return;
+                }
+
+                // Send to backend
+                fetch("/add_noise", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageData,
+                        noiseType: noiseType,
+                        params: params
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const noisyImageURL = `/uploads/${data.filename}`;
+                        const preview = document.getElementById("preview");
+                        preview.src = noisyImageURL;
+                        //previewImageElement.src = noisyImageURL;
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                    }).
+                    finally(() => {
+                        // Hide loader
+                        document.getElementById("loader").style.display = "none";
+                    });
+            };
+        }
+
+    </script>
+
+    <script>
+
+        // Preview uploaded image and resize if it's too large
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function () {
+                const img = new Image();
+                img.src = reader.result;
+                img.onload = function () {
+                    // Resize if image is too large
+                    const maxWidth = 800; // Maximum width for the image
+                    const maxHeight = 400; // Maximum height for the image
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate the new dimensions while maintaining aspect ratio
+                    if (width > maxWidth || height > maxHeight) {
+                        const aspectRatio = width / height;
+                        if (width > maxWidth) {
+                            width = maxWidth;
+                            height = Math.round(width / aspectRatio);
+                        }
+                        if (height > maxHeight) {
+                            height = maxHeight;
+                            width = Math.round(height * aspectRatio);
+                        }
+                    }
+
+                    // Set the image preview
+                    const preview = document.getElementById("preview");
+                    preview.src = img.src;
+                    preview.style.width = `${width}px`;
+                    preview.style.height = `${height}px`;
+
+                    // Show the download button and reset button if image is uploaded
+                    showDownloadButton();
+                    showResetButton();
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Reset the image to the default image
+        function resetImage() {
+
+            console.log('Inside Reset')
+            const preview = document.getElementById("preview");
+            preview.src = "/uploads/pexels-tranmautritam-326501.jpg"; // Default image URL
+
+            // Hide the download and reset buttons when the default image is shown
+            hideDownloadButton();
+            hideResetButton();
+        }
+
+        // Show the download button if image is uploaded
+        function showDownloadButton() {
+            const preview = document.getElementById("preview");
+            const defaultImageUrl = "/uploads/pexels-tranmautritam-326501.jpg";
+            const downloadBtn = document.getElementById("downloadBtn");
+
+            // Show button only if the image is not the default
+            if (preview.src !== defaultImageUrl) {
+                downloadBtn.style.display = "inline-block";
+            }
+        }
+
+        // Show the reset button if an image is uploaded
+        function showResetButton() {
+            const resetBtn = document.getElementById("resetBtn");
+            resetBtn.style.display = "inline-block";
+        }
+
+        // Hide the download button when default image is displayed
+        function hideDownloadButton() {
+            const downloadBtn = document.getElementById("downloadBtn");
+            downloadBtn.style.display = "none";
+        }
+
+        // Hide the reset button when default image is displayed
+        function hideResetButton() {
+            const resetBtn = document.getElementById("resetBtn");
+            resetBtn.style.display = "none";
+        }
+
+        // Download the current image
+        function downloadImage() {
+            const preview = document.getElementById("preview");
+            const defaultImageUrl = "/uploads/pexels-tranmautritam-326501.jpg";
+
+            // Only allow download if the image is not the default one
+            if (preview.src !== defaultImageUrl) {
+                const link = document.createElement('a');
+                link.href = preview.src;
+                link.download = "processed_image.jpg"; // You can change the filename if you want
+                link.click();
+            } else {
+                alert("You cannot download the default image.");
+            }
+        }
+
+        // Initially hide the download and reset buttons when the page loads
+        hideDownloadButton();
+        hideResetButton();
+    </script>
+
+    <script>
+
+        function toggleNoiseOptions() {
+            const optionsDiv = document.getElementById("noiseOptions");
+            optionsDiv.style.display = optionsDiv.style.display === "none" ? "block" : "none";
+        }
+
+        function handleEnterKey(e, nextId) {
+            if (e.key === "Enter" && nextId) {
+                document.getElementById(nextId)?.focus();
+            }
+        }
+
+
+        function showNoiseParameters() {
+            const noiseType = document.getElementById("noiseType").value;
+            const paramsDiv = document.getElementById("noiseParams");
+            const saved = JSON.parse(localStorage.getItem('noiseParams')) || {};
+            let html = "";
+
+            switch (noiseType) {
+                case "gaussian":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="gaussianMean" style="width: 120px;">Mean:</label>
+                <input type="number" id="gaussianMean" value="${saved.mean || 3}" style="flex: 1;" />
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="gaussianSigma" style="width: 120px;">Sigma:</label>
+                <input type="number" id="gaussianSigma" value="${saved.sigma || 1}" style="flex: 1;" />
+            </div>
+        `;
+                    break;
+
+                case "saltpepper":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="saltProb" style="width: 120px;">Salt Probability:</label>
+                <input type="number" id="saltProb" value="${saved.saltProb || 0.02}" style="flex: 1;" />
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="pepperProb" style="width: 120px;">Pepper Probability:</label>
+                <input type="number" id="pepperProb" value="${saved.pepperProb || 0.02}" style="flex: 1;" />
+            </div>
+        `;
+                    break;
+
+                case "rayleigh":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="rayleighScale" style="width: 120px;">Scale:</label>
+                <input type="number" id="rayleighScale" value="${saved.scale || 1}" style="flex: 1;" />
+            </div>
+        `;
+                    break;
+
+                case "uniform":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="uniformLow" style="width: 120px;">Low:</label>
+                <input type="number" id="uniformLow" value="${saved.low || 0}" style="flex: 1;" />
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="uniformHigh" style="width: 120px;">High:</label>
+                <input type="number" id="uniformHigh" value="${saved.high || 1}" style="flex: 1;" />
+            </div>
+        `;
+                    break;
+
+                case "gamma":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="gammaShape" style="width: 120px;">Shape:</label>
+                <input type="number" id="gammaShape" value="${saved.shape || 2}" style="flex: 1;" />
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="gammaScale" style="width: 120px;">Scale:</label>
+                <input type="number" id="gammaScale" value="${saved.scale || 1}" style="flex: 1;" />
+            </div>
+        `;
+                    break;
+
+                case "periodic":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="periodicFreq" style="width: 120px;">Frequency:</label>
+                <input type="number" step="0.1" id="periodicFreq" value="${saved.freq || 1}" style="flex: 1;" />
+            </div>
+        `;
+                    break;
+
+                default:
+                    html = "";
+            }
+
+            html += `
+        <div style="text-align: right; margin-top: 10px;">
+            <button onclick="applyNoise()" style="padding: 5px 10px;">Apply Noise</button>
+        </div>`;
+
+            paramsDiv.innerHTML = html;
+
+            // Add keydown listeners to all inputs inside paramsDiv
+            const inputs = paramsDiv.querySelectorAll("input");
+            inputs.forEach((input, index) => {
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (index + 1 < inputs.length) {
+                            inputs[index + 1].focus();
+                        } else {
+                            document.querySelector("button[onclick='applyNoise()']").focus();
+                        }
+                    }
+                });
+            });
+        }
+
+        function handleEnterKey(e, nextId) {
+            if (e.key === "Enter" && nextId) {
+                document.getElementById(nextId)?.focus();
+            }
+        }
+    </script>
+
+    <script>
+        function toggleFilterOptions() {
+            const optionsDiv = document.getElementById("filterOptions");
+            optionsDiv.style.display = optionsDiv.style.display === "none" ? "block" : "none";
+        }
+
+        function applyFilter() {
+            
+            document.getElementById("loader").style.display = "block";
+
+            const previewImageElement = document.getElementById("preview");
+            const imageSrc = previewImageElement.src;
+
+            if (!imageSrc || imageSrc === "") {
+                alert("No image selected for processing!");
+                document.getElementById("loader").style.display = "none";
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            const img = new Image();
+
+            img.src = imageSrc;
+
+            img.onload = function () {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                context.drawImage(img, 0, 0);
+
+                const imageData = canvas.toDataURL("image/png");
+                const filterType = document.getElementById("filterType").value;
+
+                // Extract filter parameters dynamically
+                let params = {};
+                switch (filterType) {
+                    case "mean":
+                        params.kernel = parseInt(document.getElementById("meanKernel").value);
+                        break;
+                    case "harmonic":
+                        params.kernel = parseInt(document.getElementById("harmonicKernel").value);
+                        break;
+                    case "contraharmonic":
+                        params.kernel = parseInt(document.getElementById("contraKernel").value);
+                        params.q = parseFloat(document.getElementById("contraQ").value);
+                        break;
+                    case "median":
+                        params.kernel = parseInt(document.getElementById("medianKernel").value);
+                        break;
+                    case "min":
+                        params.kernel = parseInt(document.getElementById("minKernel").value);
+                        break;
+                    case "max":
+                        params.kernel = parseInt(document.getElementById("maxKernel").value);
+                        break;
+                    case "adaptiveMean":
+                        params.kernel = parseInt(document.getElementById("adaptiveMeanKernel").value);
+                        break;
+                    case "adaptiveMedian":
+                        params.kernel = parseInt(document.getElementById("adaptiveMedianKernel").value);
+                        break;
+                    case "box":
+                        params.width = parseInt(document.getElementById("boxWidth").value);
+                        params.height = parseInt(document.getElementById("boxHeight").value);
+                        break;
+                    default:
+                        alert("Please select a valid filter type.");
+                        document.getElementById("loader").style.display = "none";
+                        return;
+                }
+
+                // Send to backend
+                fetch("/apply_filter", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageData,
+                        filterType: filterType,
+                        params: params
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const filteredImageURL = `/uploads/${data.filename}`;
+                        const preview = document.getElementById("preview");
+                        preview.src = filteredImageURL;
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                    })
+                    .finally(() => {
+                        document.getElementById("loader").style.display = "none";
+                    });
+            };
+        }
+
+
+        function showFilterParameters() {
+            const filterType = document.getElementById("filterType").value;
+            const paramsDiv = document.getElementById("filterParams");
+            let html = "";
+
+            const saved = JSON.parse(localStorage.getItem("filterParams")) || {};
+
+            switch (filterType) {
+                case "mean":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="meanKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="meanKernel" value="${saved.meanKernel || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "harmonic":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="harmonicKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="harmonicKernel" value="${saved.harmonicKernel || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "contraharmonic":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="contraKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="contraKernel" value="${saved.contraKernel || 3}" style="flex: 1;" onkeydown="handleEnterKey(event, 'contraQ')" />
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="contraQ" style="width: 120px;">Q Value:</label>
+                <input type="number" id="contraQ" value="${saved.contraQ || 1.5}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "median":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="medianKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="medianKernel" value="${saved.medianKernel || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "min":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="minKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="minKernel" value="${saved.minKernel || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "max":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="maxKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="maxKernel" value="${saved.maxKernel || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "adaptiveMean":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="adaptiveMeanKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="adaptiveMeanKernel" value="${saved.adaptiveMeanKernel || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "adaptiveMedian":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="adaptiveMedianKernel" style="width: 120px;">Kernel Size:</label>
+                <input type="number" id="adaptiveMedianKernel" value="${saved.adaptiveMedianKernel || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                case "box":
+                    html = `
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="boxWidth" style="width: 120px;">Box Width:</label>
+                <input type="number" id="boxWidth" value="${saved.boxWidth || 3}" style="flex: 1;" onkeydown="handleEnterKey(event, 'boxHeight')" />
+            </div>
+            <div style="display: flex; align-items: center; margin-top: 5px;">
+                <label for="boxHeight" style="width: 120px;">Box Height:</label>
+                <input type="number" id="boxHeight" value="${saved.boxHeight || 3}" style="flex: 1;" />
+            </div>`;
+                    break;
+
+                default:
+                    html = "";
+            }
+
+            html += `
+    <div style="text-align: right; margin-top: 10px;">
+        <button onclick="applyFilter()" style="padding: 5px 10px;">Apply Filter</button>
+    </div>`;
+
+
+            paramsDiv.innerHTML = html;
+        }
+
+    </script>
+
+    <script>
+        function toggleEdgeOptions() {
+            const optionsDiv = document.getElementById("edgeOptions");
+            optionsDiv.style.display = optionsDiv.style.display === "none" ? "block" : "none";
+        }
+
+        function showEdgeParameters() {
+            const edgeType = document.getElementById("edgeType").value;
+            const paramsDiv = document.getElementById("edgeParams");
+            const saved = JSON.parse(localStorage.getItem('edgeParams')) || {}; // Uncommented to use saved parameters
+            let html = "";
+
+            switch (edgeType) {
+                case "sobel":
+                    html = `
+                <div style="display: flex; align-items: center; margin-top: 5px;">
+                    <label for="sobelKsize" style="width: 120px;">Kernel Size:</label>
+                    <input type="number" id="sobelKsize" value="${saved.ksize || 3}" style="flex: 1;" />
+                </div>
+            `;
+                    break;
+
+                case "roberts":
+                    html = ``;
+                    break;
+
+                case "log":
+                    html = `
+                <div style="display: flex; align-items: center; margin-top: 5px;">
+                    <label for="logKsize" style="width: 120px;">Kernel Size:</label>
+                    <input type="number" id="logKsize" value="${saved.ksize || 3}" style="flex: 1;" />
+                </div>
+                <div style="display: flex; align-items: center; margin-top: 5px;">
+                    <label for="logSigma" style="width: 120px;">Sigma:</label>
+                    <input type="number" step="0.1" id="logSigma" value="${saved.sigma || 1.0}" style="flex: 1;" />
+                </div>
+            `;
+                    break;
+
+                case "dog":
+                    html = `
+                <div style="display: flex; align-items: center; margin-top: 5px;">
+                    <label for="dogSigma1" style="width: 120px;">Sigma 1:</label>
+                    <input type="number" step="0.1" id="dogSigma1" value="${saved.sigma1 || 1.0}" style="flex: 1;" />
+                </div>
+                <div style="display: flex; align-items: center; margin-top: 5px;">
+                    <label for="dogSigma2" style="width: 120px;">Sigma 2:</label>
+                    <input type="number" step="0.1" id="dogSigma2" value="${saved.sigma2 || 2.0}" style="flex: 1;" />
+                </div>
+            `;
+                    break;
+
+                case "canny":
+                    html = `
+                <div style="display: flex; align-items: center; margin-top: 5px;">
+                    <label for="cannyLow" style="width: 120px;">Low Threshold:</label>
+                    <input type="number" id="cannyLow" value="${saved.lowThreshold || 50}" style="flex: 1;" />
+                </div>
+                <div style="display: flex; align-items: center; margin-top: 5px;">
+                    <label for="cannyHigh" style="width: 120px;">High Threshold:</label>
+                    <input type="number" id="cannyHigh" value="${saved.highThreshold || 150}" style="flex: 1;" />
+                </div>
+            `;
+                    break;
+            }
+
+            html += `
+        <div style="text-align: right; margin-top: 10px;">
+            <button onclick="applyEdgeDetection()" style="padding: 5px 10px;">Apply Edge Detection</button>
+        </div>`;
+
+            paramsDiv.innerHTML = html;
+
+            const inputs = paramsDiv.querySelectorAll("input");
+            inputs.forEach((input, index) => {
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (index + 1 < inputs.length) {
+                            inputs[index + 1].focus();
+                        } else {
+                            document.querySelector("button[onclick='applyEdgeDetection()']").focus();
+                        }
+                    }
+                });
+            });
+        }
+
+        function applyEdgeDetection() {
+            document.getElementById("loader").style.display = "block";
+
+            const imageSrc = document.getElementById("preview").src;
+            
+            if (!imageSrc || imageSrc === "") {
+                alert("No image selected for processing!");
+                return;
+            }
+
+            const img = new Image();
+            img.src = imageSrc;
+
+            img.onload = function () {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                const imageData = canvas.toDataURL("image/png");
+
+                const edgeType = document.getElementById("edgeType").value;
+                let params = {};
+
+                switch (edgeType) {
+                    case "sobel":
+                        params.ksize = parseInt(document.getElementById("sobelKsize").value);
+                        break;
+                    case "log":
+                        params.ksize = parseInt(document.getElementById("logKsize").value);
+                        params.sigma = parseFloat(document.getElementById("logSigma").value);
+                        break;
+                    case "dog":
+                        params.sigma1 = parseFloat(document.getElementById("dogSigma1").value);
+                        params.sigma2 = parseFloat(document.getElementById("dogSigma2").value);
+                        break;
+                    case "canny":
+                        params.lowThreshold = parseInt(document.getElementById("cannyLow").value);
+                        params.highThreshold = parseInt(document.getElementById("cannyHigh").value);
+                        break;
+                }
+
+                fetch("/edge_detect", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: imageData,
+                        edgeType: edgeType,
+                        params: params
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("preview").src = `/uploads/${data.filename}`;
+                    })
+                    .catch(error => console.error("Error:", error))
+                    .finally(() => {
+                        document.getElementById("loader").style.display = "none";
+                    });
+            };
+        }
+
+
+    </script>
+
+
+
+</body>
+
+</html>
